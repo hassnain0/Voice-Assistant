@@ -1,7 +1,6 @@
-
 import { StyleSheet, Text,Image, View,SafeAreaView, ScrollView, TouchableOpacity, Alert } from 'react-native'
 import React, { useEffect, useState } from 'react'
-import Voice from '@react-native-community/voice';
+import Voice from '@react-native-voice/voice';
 import {widthPercentageToDP as wp, heightPercentageToDP as hp} from 'react-native-responsive-screen';
   import Features from '../components/Features';
   import { dummyMessages } from '../constants';
@@ -10,11 +9,11 @@ import {widthPercentageToDP as wp, heightPercentageToDP as hp} from 'react-nativ
     const [messages,setMessages]=useState(dummyMessages);
     const [recording,setRecording]=useState(false);
     const [speaking,setSpeaking]=useState(true);
+    const [results,setResults]=useState([]);
 
 
 
     useEffect(()=>{
-    
     Voice.onSpeechStart = speechStartHandler;
     Voice.onSpeechEnd = speechEndHandler;
     Voice.onSpeechResults =speechResultsHandler;
@@ -25,28 +24,20 @@ import {widthPercentageToDP as wp, heightPercentageToDP as hp} from 'react-nativ
     })
     });
 
-    const stopSpeaking=()=>{
-      setSpeaking(false);
-    }
 
-    //Clear Function
-    const clear=()=>{
-      setMessages([]);
-    }
+    const startRecording=async()=>{
 
-    const startRecording = async () => {
-      setRecording(true);
-      try {
-        if (!Voice) {
-          Alert.alert("Voice module is not initialized");
-          return;
-        }
-        await Voice.start("en-US");
-      } catch (e) {
-        console.error("Error starting voice recognition", e);
+      if(!Voice){
+        console.log("Voice not found");
       }
-    };
+      try{
+        await Voice.start("en-GB");
 
+      }
+      catch(e){
+        console.log("Error",e)
+      }
+    }
     const stopRecording=async()=>{
       setRecording(false);
       try{
@@ -68,12 +59,20 @@ import {widthPercentageToDP as wp, heightPercentageToDP as hp} from 'react-nativ
     
     const speechResultsHandler=(e)=>{
       console.log("Results Handler",e);
+      const text=e.value[0];
+      setResults(text);
     }
 
-    const speechErrorHandler=(e)=>{
-      console.log("Error Handler",e);
-    }
-
+    const speechErrorHandler = (e) => {
+      console.error("Error Handler:", e);
+      if (e && e.code) {
+        console.error(`Error Code: ${e.code}`);
+      }
+      if (e && e.message) {
+        console.error(`Error Message: ${e.message}`);
+      }
+    };
+    
 
     return (
       <View className='flex-1 bg-white'>
@@ -131,7 +130,7 @@ import {widthPercentageToDP as wp, heightPercentageToDP as hp} from 'react-nativ
 
 {
      speaking&&(
-      <TouchableOpacity onPress={stopSpeaking}
+      <TouchableOpacity 
         className='bg-red-400 rounded-3xl p-3 right-10'
       >
         <Text className='text-white font-semibold'>Stop</Text>
@@ -156,7 +155,7 @@ import {widthPercentageToDP as wp, heightPercentageToDP as hp} from 'react-nativ
 }
 {
      messages.length>0&&(
-      <TouchableOpacity onPress={clear}
+      <TouchableOpacity
       className='bg-neutral-400 rounded-3xl p-3 left-10'
     >
       <Text className='text-white font-semibold'>Clear</Text>

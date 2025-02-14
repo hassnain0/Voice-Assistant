@@ -10,9 +10,10 @@
     "test": "jest"
   },
   "dependencies": {
-    "@react-native-community/voice": "^1.1.9",
+    "@react-native-voice/voice": "^3.2.4",
     "@react-navigation/native": "^7.0.14",
     "@react-navigation/native-stack": "^7.2.0",
+    "axios": "^1.7.9",
     "expo": "^52.0.33",
     "nativewind": "^4.1.23",
     "react": "18.3.1",
