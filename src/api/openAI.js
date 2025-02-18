@@ -1,29 +1,60 @@
 import axios from 'axios';
 import { openAIKey } from '../constants';
 
-const client=axios.create({
-    headers:{
-        "Content-Type":'application/json',
-        "Authorization": "Bearer "+openAIKey, 
+const chatgptEndPoint = "https://api.groq.com/openai/v1/chat/completions";
+const dalleEndPoint = "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-dev";
+
+const client = axios.create({
+    headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + openAIKey,
     }
 });
 
-const chatgptEndPoint="https://api.openai.com/v1/chat/completions";
-const dalleEndPoint="https://api.openai.com/v1/images/generations";
+export const apiCall = async (prompt, messages) => {
+    try {
+        const response = await chatgpApiCall(prompt, messages || []);
+        console.log("Full Response:", response);
 
-export const apiCall=async(prompt,messages)=>{
-    try{
-        const response=await client.post(chatgptEndPoint,{
-            model:"gpt-3.5-turbo",
-            messages:[{
-                role:"user",
-                content:`Does this message want to generate an AI picture, image, art or anything similar?${prompt}.`
-            }]
-        })  
-        console.log("Response from Server",response.data)
-        
+        return { success: true, messages: response.messages || [] };
+    } catch (e) {
+        console.log("Error:", e);
+        return { success: false, msg: e.message };
     }
-    catch(e){
-        console.log("Error",e)
+};
+
+const chatgpApiCall = async (prompt, messages) => {
+    try {
+        const res = await client.post(chatgptEndPoint, {
+            model: "llama-3.3-70b-versatile",
+            messages: messages,
+        });
+
+        let answer = res.data?.choices?.[0]?.message?.content;
+
+        if (!answer) {
+            throw new Error("No response from API");
+        }
+
+        messages.push({
+            role: "assistant",
+            content: answer.trim(),
+        });
+
+        return { success: true, messages };
+    } catch (e) {
+        console.log("Error:", e);
+        return { success: false, msg: e.message };
     }
-}
+};
+
+const dalleApiCall = async (prompt, messages) => {
+    try {
+        const res = await client.post(dalleEndPoint, { input: prompt });
+
+        return { success: true, data: res.data };
+    } catch (e) {
+        console.log("Error:", e);
+        return { success: false, msg: e.message };
+    }
+};

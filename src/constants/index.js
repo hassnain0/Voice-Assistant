@@ -17,4 +17,4 @@ export const dummyMessages=[
     },
 
 ];
-export const openAIKey="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";
+export const openAIKey="";

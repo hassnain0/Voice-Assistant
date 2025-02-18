@@ -1,18 +1,33 @@
-import { StyleSheet, Text,Image, View,SafeAreaView, ScrollView, TouchableOpacity, Alert } from 'react-native'
+import { StyleSheet, Text,Image, View,SafeAreaView, ScrollView, TouchableOpacity, Alert, PermissionsAndroid, TextInput, KeyboardAvoidingView } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import Voice from '@react-native-voice/voice';
 import {widthPercentageToDP as wp, heightPercentageToDP as hp} from 'react-native-responsive-screen';
-  import Features from '../components/Features';
-  import { dummyMessages } from '../constants';
+import Features from '../components/Features';
+import { dummyMessages } from '../constants';
+import { apiCall } from '../api/openAI';
 
   export default function Home() {
     const [messages,setMessages]=useState(dummyMessages);
     const [recording,setRecording]=useState(false);
     const [speaking,setSpeaking]=useState(true);
-    const [results,setResults]=useState([]);
+    const [results,setResults]=useState();
 
-
-
+async function requestMicPermission() {
+  try {
+    const granted = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+      {
+        title: "Microphone Permission",
+        message: "App needs access to your microphone to recognize speech",
+        buttonPositive: "OK",
+      }
+    );
+    return granted === PermissionsAndroid.RESULTS.GRANTED;
+  } catch (err) {
+    console.warn(err);
+    return false;
+  }
+}
     useEffect(()=>{
     Voice.onSpeechStart = speechStartHandler;
     Voice.onSpeechEnd = speechEndHandler;
@@ -23,8 +38,7 @@ import {widthPercentageToDP as wp, heightPercentageToDP as hp} from 'react-nativ
       Voice.destroy().then(Voice.removeAllListeners);
     })
     });
-
-
+    
     const startRecording=async()=>{
 
       if(!Voice){
@@ -39,30 +53,31 @@ import {widthPercentageToDP as wp, heightPercentageToDP as hp} from 'react-nativ
       }
     }
     const stopRecording=async()=>{
-      setRecording(false);
       try{
         await Voice.stop();
         setRecording(false);
+        fetchResponse();
       }
       catch(e){
         console.log("Error",e)
       }
     }
-
     const speechStartHandler=()=>{
-      console.log("Speech Started");
+      requestMicPermission()
     };
-
     const speechEndHandler=()=>{
       console.log("Speech Ended");
     }
+    const speechResultsHandler = (e) => {
+      if (e.value && e.value.length > 0) {
+        const text = e.value[0];
+        console.log("Results:", text);
+        setResults(text);
+      } else {
+        console.log("No speech detected");
+      }
+    };
     
-    const speechResultsHandler=(e)=>{
-      console.log("Results Handler",e);
-      const text=e.value[0];
-      setResults(text);
-    }
-
     const speechErrorHandler = (e) => {
       console.error("Error Handler:", e);
       if (e && e.code) {
@@ -72,9 +87,29 @@ import {widthPercentageToDP as wp, heightPercentageToDP as hp} from 'react-nativ
         console.error(`Error Message: ${e.message}`);
       }
     };
+    const fetchResponse=async()=>{
+      if(results.trim().length>0){
+        let newMessages=[...messages];
+        newMessages.push({
+          role:"user",
+          content:results.trim()
+        });
+       
+        setMessages([...newMessages]);
+        apiCall(results,newMessages).then((response)=>{
     
+      //  console.log("Response",response)
+         if(response.success) {
+          setMessages([...response.messages]);
+          setResults('');
+         }
+         else Alert.alert("Error",response.messages)
+        })
+      }
+    }
 
     return (
+      <ScrollView>
       <View className='flex-1 bg-white'>
         <SafeAreaView className='flex-1 flex mx-5'>
           <View className='flex-row justify-center'>
@@ -126,7 +161,7 @@ import {widthPercentageToDP as wp, heightPercentageToDP as hp} from 'react-nativ
               <Features/>
             )
           }      
-          <View className='flex-row justify-center items-center mb-20'>
+          {/* <View className='flex-row justify-center items-center mb-20'>
 
 {
      speaking&&(
@@ -163,9 +198,27 @@ import {widthPercentageToDP as wp, heightPercentageToDP as hp} from 'react-nativ
     )  
 }
 
-          </View>
+          </View> */}
+
+<View className="flex-row items-center bg-gray-300 rounded-2xl mt-10 px-4 py-2">
+  <TextInput
+    className="flex-1 text-base text-black p-2"
+    placeholder="Write your prompt here"
+    placeholderTextColor="gray"
+    value={results}
+    onChangeText={(text) => setResults(text)}
+  />
+  <TouchableOpacity 
+    onPress={fetchResponse} 
+    className="bg-blue-500 px-4 py-2 rounded-lg ml-2"
+  >
+    <Text className="text-white font-semibold">Enter</Text>
+  </TouchableOpacity>
+</View>
+
         </SafeAreaView>
       </View>
+      </ScrollView>
     )
   }
 
