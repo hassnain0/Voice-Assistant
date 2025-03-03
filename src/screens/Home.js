@@ -7,7 +7,7 @@ import { dummyMessages } from '../constants';
 import { apiCall } from '../api/openAI';
 
   export default function Home() {
-    const [messages,setMessages]=useState(dummyMessages);
+    const [messages,setMessages]=useState([]);
     const [recording,setRecording]=useState(false);
     const [speaking,setSpeaking]=useState(true);
     const [results,setResults]=useState();
@@ -40,21 +40,24 @@ async function requestMicPermission() {
     });
     
     const startRecording=async()=>{
-
+     setRecording(true);
       if(!Voice){
         console.log("Voice not found");
       }
-      try{
-        await Voice.start("en-GB");
 
+      try{
+        console.log("Called");
+        await Voice.start("en-GB");
       }
       catch(e){
         console.log("Error",e)
       }
     }
+
     const stopRecording=async()=>{
       try{
         await Voice.stop();
+
         setRecording(false);
         fetchResponse();
       }
@@ -62,17 +65,22 @@ async function requestMicPermission() {
         console.log("Error",e)
       }
     }
+
+    
     const speechStartHandler=()=>{
       requestMicPermission()
     };
+
     const speechEndHandler=()=>{
       console.log("Speech Ended");
     }
+
     const speechResultsHandler = (e) => {
       if (e.value && e.value.length > 0) {
         const text = e.value[0];
-        console.log("Results:", text);
+        console.log("Results from Speech",text)
         setResults(text);
+     
       } else {
         console.log("No speech detected");
       }
@@ -88,17 +96,16 @@ async function requestMicPermission() {
       }
     };
     const fetchResponse=async()=>{
+     
       if(results.trim().length>0){
         let newMessages=[...messages];
         newMessages.push({
           role:"user",
           content:results.trim()
         });
-       
+       console.log("New Messages",newMessages)
         setMessages([...newMessages]);
-        apiCall(results,newMessages).then((response)=>{
-    
-      //  console.log("Response",response)
+        apiCall(results.trim(),newMessages).then((response)=>{
          if(response.success) {
           setMessages([...response.messages]);
           setResults('');
@@ -106,6 +113,9 @@ async function requestMicPermission() {
          else Alert.alert("Error",response.messages)
         })
       }
+    }
+    const clear=()=>{
+      setMessages([]);
     }
 
     return (
@@ -161,7 +171,7 @@ async function requestMicPermission() {
               <Features/>
             )
           }      
-          {/* <View className='flex-row justify-center items-center mb-20'>
+             <View className='flex-row justify-center items-center mb-20 mt-10'>
 
 {
      speaking&&(
@@ -181,7 +191,7 @@ async function requestMicPermission() {
 
 ):(
 
-     // Recoding Start Button
+     // Recording Start Button
    
    <TouchableOpacity  className=' bg-emerald-400 rounded-xl  p-2' onPress={startRecording}>
      <Image source={require('../assets/images/mic.png')} style={{width:wp(7), height:hp(5)}}></Image>
@@ -191,6 +201,7 @@ async function requestMicPermission() {
 {
      messages.length>0&&(
       <TouchableOpacity
+      onPress={()=>clear()}
       className='bg-neutral-400 rounded-3xl p-3 left-10'
     >
       <Text className='text-white font-semibold'>Clear</Text>
@@ -198,23 +209,8 @@ async function requestMicPermission() {
     )  
 }
 
-          </View> */}
+          </View> 
 
-<View className="flex-row items-center bg-gray-300 rounded-2xl mt-10 px-4 py-2">
-  <TextInput
-    className="flex-1 text-base text-black p-2"
-    placeholder="Write your prompt here"
-    placeholderTextColor="gray"
-    value={results}
-    onChangeText={(text) => setResults(text)}
-  />
-  <TouchableOpacity 
-    onPress={fetchResponse} 
-    className="bg-blue-500 px-4 py-2 rounded-lg ml-2"
-  >
-    <Text className="text-white font-semibold">Enter</Text>
-  </TouchableOpacity>
-</View>
 
         </SafeAreaView>
       </View>

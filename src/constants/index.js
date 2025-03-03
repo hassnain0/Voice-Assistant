@@ -1,3 +1,6 @@
+
+//Project is based on React CLI
+
 export const dummyMessages=[
     {
         role:"user",
@@ -17,4 +20,4 @@ export const dummyMessages=[
     },
 
 ];
-export const openAIKey="";
+export const openAIKey="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";
